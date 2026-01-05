@@ -1,14 +1,26 @@
+/* 
+
+**********************
+**********************
+**********************
+**********************
+this code is mainly based on the usb HID exmaple
+sources :
+https://www.usb.org/sites/default/files/audio10.pdf
+https://www.usb.org/sites/default/files/termt10.pdf
+*/
+
 #ifndef _USB_CONFIG_H
 #define _USB_CONFIG_H
 
 #include "funconfig.h"
 #include "ch32fun.h"
-
+//needs to go over this!
 #define FUSB_CONFIG_EPS       4 // Include EP0 in this count
 #define FUSB_SUPPORTS_SLEEP   0
 #define FUSB_HID_INTERFACES   2
 #define FUSB_CURSED_TURBO_DMA 0 // Hacky, but seems fine, shaves 2.5us off filling 64-byte buffers.
-#define FUSB_HID_USER_REPORTS 1
+#define FUSB_HID_USER_REPORTS 0
 #define FUSB_IO_PROFILE       1
 #define FUSB_USE_HPE          FUNCONF_ENABLE_HPE
 #define FUSB_5V_OPERATION     FUNCONF_5V_OPERATION
@@ -34,91 +46,6 @@ static const uint8_t device_descriptor[] = {
 };
 
 
-/* Keyboard Report Descriptor */
-static const uint8_t KeyRepDesc[ ] =
-{
-    0x05, 0x01,                                             // Usage Page (Generic Desktop)
-    0x09, 0x06,                                             // Usage (Keyboard)
-    0xA1, 0x01,                                             // Collection (Application)
-    0x05, 0x07,                                             // Usage Page (Key Codes)
-    0x19, 0xE0,                                             // Usage Minimum (224)
-    0x29, 0xE7,                                             // Usage Maximum (231)
-    0x15, 0x00,                                             // Logical Minimum (0)
-    0x25, 0x01,                                             // Logical Maximum (1)
-    0x75, 0x01,                                             // Report Size (1)
-    0x95, 0x08,                                             // Report Count (8)
-    0x81, 0x02,                                             // Input (Data,Variable,Absolute)
-    0x95, 0x01,                                             // Report Count (1)
-    0x75, 0x08,                                             // Report Size (8)
-    0x81, 0x01,                                             // Input (Constant)
-    0x95, 0x03,                                             // Report Count (3)
-    0x75, 0x01,                                             // Report Size (1)
-    0x05, 0x08,                                             // Usage Page (LEDs)
-    0x19, 0x01,                                             // Usage Minimum (1)
-    0x29, 0x03,                                             // Usage Maximum (3)
-    0x91, 0x02,                                             // Output (Data,Variable,Absolute)
-    0x95, 0x05,                                             // Report Count (5)
-    0x75, 0x01,                                             // Report Size (1)
-    0x91, 0x01,                                             // Output (Constant,Array,Absolute)
-    0x95, 0x06,                                             // Report Count (6)
-    0x75, 0x08,                                             // Report Size (8)
-    0x26, 0xFF, 0x00,                                       // Logical Maximum (255)
-    0x05, 0x07,                                             // Usage Page (Key Codes)
-    0x19, 0x00,                                             // Usage Minimum (0)
-    0x29, 0x91,                                             // Usage Maximum (145)
-    0x81, 0x00,                                             // Input(Data,Array,Absolute)
-    0xC0                                                    // End Collection
-};
-
-/* Mouse Report Descriptor */
-static const uint8_t MouseRepDesc[ ] =
-{
-
-    0x05, 0x01,                                             // Usage Page (Generic Desktop)
-    0x09, 0x02,                                             // Usage (Mouse)
-    0xA1, 0x01,                                             // Collection (Application)
-    0x09, 0x01,                                             // Usage (Pointer)
-    0xA1, 0x00,                                             // Collection (Physical)
-    0x05, 0x09,                                             // Usage Page (Button)
-    0x19, 0x01,                                             // Usage Minimum (Button 1)
-    0x29, 0x03,                                             // Usage Maximum (Button 3)
-    0x15, 0x00,                                             // Logical Minimum (0)
-    0x25, 0x01,                                             // Logical Maximum (1)
-    0x75, 0x01,                                             // Report Size (1)
-    0x95, 0x03,                                             // Report Count (3)
-    0x81, 0x02,                                             // Input (Data,Variable,Absolute)
-    0x75, 0x05,                                             // Report Size (5)
-    0x95, 0x01,                                             // Report Count (1)
-    0x81, 0x01,                                             // Input (Constant,Array,Absolute)
-    0x05, 0x01,                                             // Usage Page (Generic Desktop)
-    0x09, 0x30,                                             // Usage (X)
-    0x09, 0x31,                                             // Usage (Y)
-    0x09, 0x38,                                             // Usage (Wheel)
-    0x15, 0x81,                                             // Logical Minimum (-127)
-    0x25, 0x7F,                                             // Logical Maximum (127)
-    0x75, 0x08,                                             // Report Size (8)
-    0x95, 0x03,                                             // Report Count (3)
-    0x81, 0x06,                                             // Input (Data,Variable,Relative)
-    0xC0,                                                   // End Collection
-    0xC0                                                    // End Collection
-};
-
-static const uint8_t HIDAPIRepDesc[ ] =
-{
-	HID_USAGE_PAGE ( 0xff ), // Vendor-defined page.
-	HID_USAGE      ( 0x00 ),
-	HID_REPORT_SIZE ( 8 ),
-	HID_COLLECTION ( HID_COLLECTION_LOGICAL ),
-		HID_REPORT_COUNT   ( 254 ),
-		HID_REPORT_ID      ( 0xaa )
-		HID_USAGE          ( 0x01 ),
-		HID_FEATURE        ( HID_DATA | HID_VARIABLE | HID_ABSOLUTE ) ,
-		HID_REPORT_COUNT   ( 63 ), // For use with `hidapitester --vidpid 1209/D003 --open --read-feature 171`
-		HID_REPORT_ID      ( 0xab )
-		HID_USAGE          ( 0x01 ),	
-		HID_FEATURE        ( HID_DATA | HID_VARIABLE | HID_ABSOLUTE ) ,
-	HID_COLLECTION_END,
-};
 
 /* Configuration Descriptor Set */
 static const uint8_t config_descriptor[ ] =
@@ -139,7 +66,7 @@ static const uint8_t config_descriptor[ ] =
     0x24,                                                   // CS_INTERFACE                                 1                   10
     0x01,                                                   // header subtype                               2                   11
     0x00,0x01,                                              // audio device class spec                      3,4                 12
-    0x0052,                                                 // Total number of bytes returned               5,6                 13,14  *****************update later
+    0x0018,                                                 // Total number of bytes returned               5,6                 13,14  *****************update later
     0x01,                                                   // stream ID                                    7                   15
     0x02,                                                   // stream ID                                    8                   16
 
@@ -206,11 +133,8 @@ const static struct descriptor_list_struct {
 	{0x00000100, device_descriptor, sizeof(device_descriptor)},
 	{0x00000200, config_descriptor, sizeof(config_descriptor)},
 	// interface number // 2200 for hid descriptors.
-	{0x00002200, KeyRepDesc, sizeof(KeyRepDesc)},
-	{0x00012200, MouseRepDesc, sizeof(MouseRepDesc)},
-	{0x00022200, HIDAPIRepDesc, sizeof(HIDAPIRepDesc)},
 
-	{0x00002100, config_descriptor + 18, 9 }, // Not sure why, this seems to be useful for Windows + Android.
+	//{0x00002100, config_descriptor + 18, 9 }, // Not sure why, this seems to be useful for Windows + Android.
 
 	{0x00000300, (const uint8_t *)&string0, 4},
 	{0x04090301, (const uint8_t *)&string1, sizeof(STR_MANUFACTURER)},

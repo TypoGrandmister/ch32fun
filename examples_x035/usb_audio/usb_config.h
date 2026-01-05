@@ -1,0 +1,224 @@
+#ifndef _USB_CONFIG_H
+#define _USB_CONFIG_H
+
+#include "funconfig.h"
+#include "ch32fun.h"
+
+#define FUSB_CONFIG_EPS       4 // Include EP0 in this count
+#define FUSB_SUPPORTS_SLEEP   0
+#define FUSB_HID_INTERFACES   2
+#define FUSB_CURSED_TURBO_DMA 0 // Hacky, but seems fine, shaves 2.5us off filling 64-byte buffers.
+#define FUSB_HID_USER_REPORTS 1
+#define FUSB_IO_PROFILE       1
+#define FUSB_USE_HPE          FUNCONF_ENABLE_HPE
+#define FUSB_5V_OPERATION     FUNCONF_5V_OPERATION
+
+#include "usb_defines.h"
+
+//Taken from http://www.usbmadesimple.co.uk/ums_ms_desc_dev.htm
+static const uint8_t device_descriptor[] = {
+	18, //Length
+	1,  //Type (Device)
+	0x00, 0x02, //Spec
+	0x0, //Device Class
+	0x0, //Device Subclass
+	0x0, //Device Protocol  (000 = use config descriptor)
+	64, //Max packet size for EP0 (This has to be 8 because of the USB Low-Speed Standard)
+	0x09, 0x12, //ID Vendor
+	0x35, 0xd0, //ID Product
+	0x03, 0x00, //ID Rev
+	1, //Manufacturer string
+	2, //Product string
+	3, //Serial string
+	1, //Max number of configurations
+};
+
+
+/* Keyboard Report Descriptor */
+static const uint8_t KeyRepDesc[ ] =
+{
+    0x05, 0x01,                                             // Usage Page (Generic Desktop)
+    0x09, 0x06,                                             // Usage (Keyboard)
+    0xA1, 0x01,                                             // Collection (Application)
+    0x05, 0x07,                                             // Usage Page (Key Codes)
+    0x19, 0xE0,                                             // Usage Minimum (224)
+    0x29, 0xE7,                                             // Usage Maximum (231)
+    0x15, 0x00,                                             // Logical Minimum (0)
+    0x25, 0x01,                                             // Logical Maximum (1)
+    0x75, 0x01,                                             // Report Size (1)
+    0x95, 0x08,                                             // Report Count (8)
+    0x81, 0x02,                                             // Input (Data,Variable,Absolute)
+    0x95, 0x01,                                             // Report Count (1)
+    0x75, 0x08,                                             // Report Size (8)
+    0x81, 0x01,                                             // Input (Constant)
+    0x95, 0x03,                                             // Report Count (3)
+    0x75, 0x01,                                             // Report Size (1)
+    0x05, 0x08,                                             // Usage Page (LEDs)
+    0x19, 0x01,                                             // Usage Minimum (1)
+    0x29, 0x03,                                             // Usage Maximum (3)
+    0x91, 0x02,                                             // Output (Data,Variable,Absolute)
+    0x95, 0x05,                                             // Report Count (5)
+    0x75, 0x01,                                             // Report Size (1)
+    0x91, 0x01,                                             // Output (Constant,Array,Absolute)
+    0x95, 0x06,                                             // Report Count (6)
+    0x75, 0x08,                                             // Report Size (8)
+    0x26, 0xFF, 0x00,                                       // Logical Maximum (255)
+    0x05, 0x07,                                             // Usage Page (Key Codes)
+    0x19, 0x00,                                             // Usage Minimum (0)
+    0x29, 0x91,                                             // Usage Maximum (145)
+    0x81, 0x00,                                             // Input(Data,Array,Absolute)
+    0xC0                                                    // End Collection
+};
+
+/* Mouse Report Descriptor */
+static const uint8_t MouseRepDesc[ ] =
+{
+
+    0x05, 0x01,                                             // Usage Page (Generic Desktop)
+    0x09, 0x02,                                             // Usage (Mouse)
+    0xA1, 0x01,                                             // Collection (Application)
+    0x09, 0x01,                                             // Usage (Pointer)
+    0xA1, 0x00,                                             // Collection (Physical)
+    0x05, 0x09,                                             // Usage Page (Button)
+    0x19, 0x01,                                             // Usage Minimum (Button 1)
+    0x29, 0x03,                                             // Usage Maximum (Button 3)
+    0x15, 0x00,                                             // Logical Minimum (0)
+    0x25, 0x01,                                             // Logical Maximum (1)
+    0x75, 0x01,                                             // Report Size (1)
+    0x95, 0x03,                                             // Report Count (3)
+    0x81, 0x02,                                             // Input (Data,Variable,Absolute)
+    0x75, 0x05,                                             // Report Size (5)
+    0x95, 0x01,                                             // Report Count (1)
+    0x81, 0x01,                                             // Input (Constant,Array,Absolute)
+    0x05, 0x01,                                             // Usage Page (Generic Desktop)
+    0x09, 0x30,                                             // Usage (X)
+    0x09, 0x31,                                             // Usage (Y)
+    0x09, 0x38,                                             // Usage (Wheel)
+    0x15, 0x81,                                             // Logical Minimum (-127)
+    0x25, 0x7F,                                             // Logical Maximum (127)
+    0x75, 0x08,                                             // Report Size (8)
+    0x95, 0x03,                                             // Report Count (3)
+    0x81, 0x06,                                             // Input (Data,Variable,Relative)
+    0xC0,                                                   // End Collection
+    0xC0                                                    // End Collection
+};
+
+static const uint8_t HIDAPIRepDesc[ ] =
+{
+	HID_USAGE_PAGE ( 0xff ), // Vendor-defined page.
+	HID_USAGE      ( 0x00 ),
+	HID_REPORT_SIZE ( 8 ),
+	HID_COLLECTION ( HID_COLLECTION_LOGICAL ),
+		HID_REPORT_COUNT   ( 254 ),
+		HID_REPORT_ID      ( 0xaa )
+		HID_USAGE          ( 0x01 ),
+		HID_FEATURE        ( HID_DATA | HID_VARIABLE | HID_ABSOLUTE ) ,
+		HID_REPORT_COUNT   ( 63 ), // For use with `hidapitester --vidpid 1209/D003 --open --read-feature 171`
+		HID_REPORT_ID      ( 0xab )
+		HID_USAGE          ( 0x01 ),	
+		HID_FEATURE        ( HID_DATA | HID_VARIABLE | HID_ABSOLUTE ) ,
+	HID_COLLECTION_END,
+};
+
+/* Configuration Descriptor Set */
+static const uint8_t config_descriptor[ ] =
+{
+    /* Configuration Descriptor */                                                                          //offset tracking
+    0x09,                                                   // bLength                                      0
+    0x02,                                                   // bDescriptorType                              1
+    0x00,                                                   // number of intrfaces                          2
+    0x00,                                                   // num of endpoints                             3
+    0x03,                                                   // bNumInterfaces (3)                           4
+    0x01,                                                   // audio class                                  5
+    0x02,                                                   // subclass 0x02 for audio or 0x03 for midi     6
+    0x00,                                                   // intraface protocol, not used                 7
+    0x00,                                                   // string count                                 8
+
+    /* Audio Header Descriptor */                                                                   //offset tracking
+    0x09,                                                   // bLength                                      0                   9
+    0x24,                                                   // CS_INTERFACE                                 1                   10
+    0x01,                                                   // header subtype                               2                   11
+    0x00,0x01,                                              // audio device class spec                      3,4                 12
+    0x0052,                                                 // Total number of bytes returned               5,6                 13,14  *****************update later
+    0x01,                                                   // stream ID                                    7                   15
+    0x02,                                                   // stream ID                                    8                   16
+
+    /* channel 1 Descriptor */                                                                      //offset tracking
+    0x0C,                                                   // bLength                              0                           17
+    0x24,                                                   // CS_INTERFACE                         1                           18
+    0x03,                                                   // OUTPUT_TERMINAL                      2                           19
+    0x10,                                                   // Terminal Id                          3                           20
+    0x0300,                                                 // Terminal type (undefined)            4,5                         21
+    0x00,                                                   // Input Terminal associated            6                           22
+    0x01,                                                   // Output Terminal associated           7                           23
+    0x00,                                                   // string index                         8                           24
+
+    /* channel 1 Descriptor */                                                                      //offset tracking
+    0x0C,                                                   // bLength                              0                           17
+    0x24,                                                   // CS_INTERFACE                         1                           18
+    0x03,                                                   // OUTPUT_TERMINAL                      2                           19
+    0x11,                                                   // Terminal Id                          3                           20
+    0x0300,                                                 // Terminal type (undefined)            4,5                         21
+    0x00,                                                   // Input Terminal associated            6                           22
+    0x02,                                                   // Output Terminal associated           7                           23
+    0x00,                                                   // string index                         8                           24
+};
+
+
+
+#define STR_MANUFACTURER u"CNLohr"
+#define STR_PRODUCT      u"ch32fun ch32x035 test"
+#define STR_SERIAL       u"CUSTOMDEVICE000"
+
+struct usb_string_descriptor_struct {
+	uint8_t bLength;
+	uint8_t bDescriptorType;
+	uint16_t wString[];
+};
+const static struct usb_string_descriptor_struct string0 __attribute__((section(".rodata"))) = {
+	4,
+	3,
+	{0x0409}
+};
+const static struct usb_string_descriptor_struct string1 __attribute__((section(".rodata")))  = {
+	sizeof(STR_MANUFACTURER),
+	3,
+	STR_MANUFACTURER
+};
+const static struct usb_string_descriptor_struct string2 __attribute__((section(".rodata")))  = {
+	sizeof(STR_PRODUCT),
+	3,
+	STR_PRODUCT
+};
+const static struct usb_string_descriptor_struct string3 __attribute__((section(".rodata")))  = {
+	sizeof(STR_SERIAL),
+	3,
+	STR_SERIAL
+};
+
+// This table defines which descriptor data is sent for each specific
+// request from the host (in wValue and wIndex).
+const static struct descriptor_list_struct {
+	uint32_t	lIndexValue;
+	const uint8_t	*addr;
+	uint8_t		length;
+} descriptor_list[] = {
+	{0x00000100, device_descriptor, sizeof(device_descriptor)},
+	{0x00000200, config_descriptor, sizeof(config_descriptor)},
+	// interface number // 2200 for hid descriptors.
+	{0x00002200, KeyRepDesc, sizeof(KeyRepDesc)},
+	{0x00012200, MouseRepDesc, sizeof(MouseRepDesc)},
+	{0x00022200, HIDAPIRepDesc, sizeof(HIDAPIRepDesc)},
+
+	{0x00002100, config_descriptor + 18, 9 }, // Not sure why, this seems to be useful for Windows + Android.
+
+	{0x00000300, (const uint8_t *)&string0, 4},
+	{0x04090301, (const uint8_t *)&string1, sizeof(STR_MANUFACTURER)},
+	{0x04090302, (const uint8_t *)&string2, sizeof(STR_PRODUCT)},	
+	{0x04090303, (const uint8_t *)&string3, sizeof(STR_SERIAL)}
+};
+#define DESCRIPTOR_LIST_ENTRIES ((sizeof(descriptor_list))/(sizeof(struct descriptor_list_struct)) )
+
+
+#endif
+

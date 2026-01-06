@@ -18,9 +18,7 @@ https://www.usb.org/sites/default/files/termt10.pdf
 //needs to go over this!
 #define FUSB_CONFIG_EPS       4 // Include EP0 in this count
 #define FUSB_SUPPORTS_SLEEP   0
-#define FUSB_HID_INTERFACES   2
 #define FUSB_CURSED_TURBO_DMA 0 // Hacky, but seems fine, shaves 2.5us off filling 64-byte buffers.
-#define FUSB_HID_USER_REPORTS 0
 #define FUSB_IO_PROFILE       1
 #define FUSB_USE_HPE          FUNCONF_ENABLE_HPE
 #define FUSB_5V_OPERATION     FUNCONF_5V_OPERATION
@@ -29,10 +27,10 @@ https://www.usb.org/sites/default/files/termt10.pdf
 
 //Taken from http://www.usbmadesimple.co.uk/ums_ms_desc_dev.htm
 static const uint8_t device_descriptor[] = {
-	18, //Length
+	0x12, //Length
 	1,  //Type (Device)
 	0x00, 0x02, //Spec
-	0x0, //Device Class
+	0x00, //Device Class
 	0x0, //Device Subclass
 	0x0, //Device Protocol  (000 = use config descriptor)
 	64, //Max packet size for EP0 (This has to be 8 because of the USB Low-Speed Standard)
@@ -50,48 +48,52 @@ static const uint8_t device_descriptor[] = {
 /* Configuration Descriptor Set */
 static const uint8_t config_descriptor[ ] =
 {
+	    /* Configuration Descriptor */																		//offset tracking
+    0x09,                                                   // bLength 										0
+    0x02,                                                   // bDescriptorType								1
+    0x2B, 0x00,                                             // wTotalLength									2,3
+    0x01,                                                   // bNumInterfaces (1)							4
+    0x01,                                                   // bConfigurationValue							5
+    0x01,                                                   // iConfiguration								6
+    0x80,                                                   // bmAttributes: Bus Powered					7
+    0x32,                                                   // MaxPower: 100mA								8
     /* Configuration Descriptor */                                                                          //offset tracking
     0x09,                                                   // bLength                                      0
-    0x02,                                                   // bDescriptorType                              1
-    0x00,                                                   // number of intrfaces                          2
-    0x00,                                                   // num of endpoints                             3
-    0x03,                                                   // bNumInterfaces (3)                           4
-    0x01,                                                   // audio class                                  5
-    0x02,                                                   // subclass 0x02 for audio or 0x03 for midi     6
-    0x00,                                                   // intraface protocol, not used                 7
-    0x00,                                                   // string count                                 8
+    0x04,                                                   // bDescriptorType                              1
+    0x01,                                                   // intrface number                              2
+    0x00,                                                   // bAlternateSetting                            3
+	0x00,                                                   // Num Endpoints    	 						4
+    0x01,                                                   // Interface Class 						        5
+    0x01,                                                   // sub class                                    6
+    0x00,                                                   // interface Protocol					        7
+    0x00,                                                   // intraface index			                    8
+    /* Audio Header Descriptor */                                                                   	    //offset tracking
+    0x09,                                                   // bLength                                      0                   
+    0x24,                                                   // CS_INTERFACE                                 1                   
+    0x01,                                                   // header subtype                               2                   
+    0x01,0x01,                                              // audio device class spec                      3,4                 
+    0x19,0x00,                                              // Total number of bytes returned               5,6                 
+    0x01,                                                   // number or streams     	                    7                   
+    0x01,                                                   // stream ID                                    7                   
 
-    /* Audio Header Descriptor */                                                                   //offset tracking
-    0x09,                                                   // bLength                                      0                   9
-    0x24,                                                   // CS_INTERFACE                                 1                   10
-    0x01,                                                   // header subtype                               2                   11
-    0x00,0x01,                                              // audio device class spec                      3,4                 12
-    0x0018,                                                 // Total number of bytes returned               5,6                 13,14  *****************update later
-    0x01,                                                   // stream ID                                    7                   15
-    0x02,                                                   // stream ID                                    8                   16
+    /* terminal 1 (out) Descriptor */                                                                //offset tracking
+    0x09,                                                   // Length                              0                           
+    0x24,                                                   // CS_INTERFACE                         1                           
+    0x03,                                                   // OUTPUT_TERMINAL                      2                           
+    0x01,                                                   // Terminal Id                          3                           
+    0x01,0x01,             	                                // Terminal type (undefined)            4,5                         
+    0x00,                                                   //Input Terminal this Output Terminal is associated           6                           
+    0x01,                                                   // Output Terminal associated           7                           
+    0x00,                                              // string index                         8,9                         
 
-    /* channel 1 Descriptor */                                                                      //offset tracking
-    0x0C,                                                   // bLength                              0                           17
-    0x24,                                                   // CS_INTERFACE                         1                           18
-    0x03,                                                   // OUTPUT_TERMINAL                      2                           19
-    0x10,                                                   // Terminal Id                          3                           20
-    0x0300,                                                 // Terminal type (undefined)            4,5                         21
-    0x00,                                                   // Input Terminal associated            6                           22
-    0x01,                                                   // Output Terminal associated           7                           23
-    0x00,                                                   // string index                         8                           24
-
-    /* channel 1 Descriptor */                                                                      //offset tracking
-    0x0C,                                                   // bLength                              0                           17
-    0x24,                                                   // CS_INTERFACE                         1                           18
-    0x03,                                                   // OUTPUT_TERMINAL                      2                           19
-    0x11,                                                   // Terminal Id                          3                           20
-    0x0300,                                                 // Terminal type (undefined)            4,5                         21
-    0x00,                                                   // Input Terminal associated            6                           22
-    0x02,                                                   // Output Terminal associated           7                           23
-    0x00,                                                   // string index                         8                           24
+	//terminal 1 settings 
+	0x09,		//len	   																					//0	
+	0x24,		//CS int																					//1
+	0x04,		//INTERFACE 																				//2
+	0x01,		//termianl																			//3
+	0x01,		//delay																		//4
+	0x00,0x01		//FormatTag																			//5,6
 };
-
-
 
 #define STR_MANUFACTURER u"CNLohr"
 #define STR_PRODUCT      u"ch32fun ch32x035 test"
@@ -132,6 +134,8 @@ const static struct descriptor_list_struct {
 } descriptor_list[] = {
 	{0x00000100, device_descriptor, sizeof(device_descriptor)},
 	{0x00000200, config_descriptor, sizeof(config_descriptor)},
+	//{0x00000200, audio_header, sizeof(audio_header)},
+	//{0x00002400, CS_header, sizeof(CS_header)},
 	// interface number // 2200 for hid descriptors.
 
 	//{0x00002100, config_descriptor + 18, 9 }, // Not sure why, this seems to be useful for Windows + Android.

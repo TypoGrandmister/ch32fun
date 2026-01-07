@@ -2,6 +2,8 @@
    This example is primarily for use with hidapi on the host.
 */
 
+#define Audio_OUT_ch 2
+
 #include "ch32fun.h"
 #include <stdio.h>
 #include <string.h>
@@ -100,7 +102,7 @@ int main()
 					buffer[0] = (tickDown && !wasTickMouse)?0x0010100:0x00000000;
 					wasTickMouse = tickDown;
 				}
-				USBFS_SendEndpoint( i, (i==1)?8:4 );
+				//USBFS_SendEndpoint( i, (i==1)?8:4 );
 			}
 		}
 	}

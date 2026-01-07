@@ -10,21 +10,77 @@ https://www.usb.org/sites/default/files/audio10.pdf
 https://www.usb.org/sites/default/files/termt10.pdf
 */
 
+
 #ifndef _USB_CONFIG_H
 #define _USB_CONFIG_H
 
 #include "funconfig.h"
 #include "ch32fun.h"
-//needs to go over this!
-#define FUSB_CONFIG_EPS       4 // Include EP0 in this count
+
+//genric USB defs
+
+#define FUSB_CONFIG_EPS       1 // Include EP0 in this count
 #define FUSB_SUPPORTS_SLEEP   0
 #define FUSB_CURSED_TURBO_DMA 0 // Hacky, but seems fine, shaves 2.5us off filling 64-byte buffers.
 #define FUSB_IO_PROFILE       1
 #define FUSB_USE_HPE          FUNCONF_ENABLE_HPE
 #define FUSB_5V_OPERATION     FUNCONF_5V_OPERATION
 
+#define STR_MANUFACTURER u"CNLohr"
+#define STR_PRODUCT      u"ch32fun ch32x035 test"
+#define STR_SERIAL       u"CUSTOMDEVICE000"
+
 #include "usb_defines.h"
 
+
+
+
+
+#ifndef Audio_OUT_ch
+#define Audio_OUT_ch 0
+#endif
+
+#ifndef Audio_IN_ch
+#define Audio_IN_ch 0
+#endif
+
+/* terminal out Descriptor (ID, INPUT)*/
+#define USB_Audio_OUT_Terminal_Desc(id,source)\
+	0x09		/*len*/						,\
+	0x24		/*CS_INTERFACE*/			,\
+	0x03		/*out code*/				,\
+	id			/*id of terminal*/			,\
+	0x01,0x03	/*0x0301->speaker*/			,\
+	0			/*associated terminal*/		,\
+	source		/*input terminal*/			,\
+	0x00		/*string index*/	
+
+/* terminal out Descriptor 
+source 1=USB,source 2=mic,
+*/
+#define USB_Audio_IN_Terminal_Desc(id,source,ch_count,ch_mask)\
+	0x0C		/*len*/						,\
+	0x24		/*CS_INTERFACE*/			,\
+	source		/*out code*/				,\
+	id			/*id of terminal*/			,\
+	0x01,source	/*terminal type*/			,\
+	0			/*associated terminal*/		,\
+	ch_count	/*channel count*/			,\
+	ch_mask		/*channel bit mask*/		,\
+	0x00		/*string index*/			,\
+	0x00		/*string index*/
+
+/*max is 8*/
+static uint8_t channel_mask(int count){
+	int mask=0;
+	if (count>7){
+		count=7;
+	}
+	for (int i=0;i<count;i++){
+		mask=mask|(1<<i);
+	}
+	return(mask)
+}
 //Taken from http://www.usbmadesimple.co.uk/ums_ms_desc_dev.htm
 static const uint8_t device_descriptor[] = {
 	0x12, //Length
@@ -60,7 +116,7 @@ static const uint8_t config_descriptor[ ] =
     /* Configuration Descriptor */                                                                          //offset tracking
     0x09,                                                   // bLength                                      0
     0x04,                                                   // bDescriptorType                              1
-    0x01,                                                   // intrface number                              2
+    0x00,                                                   // intrface number                              2
     0x00,                                                   // bAlternateSetting                            3
 	0x00,                                                   // Num Endpoints    	 						4
     0x01,                                                   // Interface Class 						        5
@@ -71,33 +127,28 @@ static const uint8_t config_descriptor[ ] =
     0x09,                                                   // bLength                                      0                   
     0x24,                                                   // CS_INTERFACE                                 1                   
     0x01,                                                   // header subtype                               2                   
-    0x01,0x01,                                              // audio device class spec                      3,4                 
+    0x01,0x00,                                              // audio device class spec                      3,4                 
     0x19,0x00,                                              // Total number of bytes returned               5,6                 
-    0x01,                                                   // number or streams     	                    7                   
-    0x01,                                                   // stream ID                                    7                   
+    (Audio_IN_ch>0)+(Audio_OUT_ch>0)*2,
+#if(Audio_IN_ch>0)
+	0x01,
+	0x02,
+#endif
+#if(Audio_OUT_ch>0)
+	0x03,
+	0x04,
+#endif
+#if(Audio_IN_ch>0)
+	0x01,
+	0x02,
+#endif
+#if(Audio_OUT_ch>0)
+		USB_Audio_OUT_Terminal_Desc(0x1,0x2),
+#endif
 
-    /* terminal 1 (out) Descriptor */                                                                //offset tracking
-    0x09,                                                   // Length                              0                           
-    0x24,                                                   // CS_INTERFACE                         1                           
-    0x03,                                                   // OUTPUT_TERMINAL                      2                           
-    0x01,                                                   // Terminal Id                          3                           
-    0x01,0x01,             	                                // Terminal type (undefined)            4,5                         
-    0x00,                                                   //Input Terminal this Output Terminal is associated           6                           
-    0x01,                                                   // Output Terminal associated           7                           
-    0x00,                                              // string index                         8,9                         
-
-	//terminal 1 settings 
-	0x09,		//len	   																					//0	
-	0x24,		//CS int																					//1
-	0x04,		//INTERFACE 																				//2
-	0x01,		//termianl																			//3
-	0x01,		//delay																		//4
-	0x00,0x01		//FormatTag																			//5,6
+	USB_Audio_IN_Terminal_Desc(0x2,0x1,0x2,0x3),
 };
 
-#define STR_MANUFACTURER u"CNLohr"
-#define STR_PRODUCT      u"ch32fun ch32x035 test"
-#define STR_SERIAL       u"CUSTOMDEVICE000"
 
 struct usb_string_descriptor_struct {
 	uint8_t bLength;

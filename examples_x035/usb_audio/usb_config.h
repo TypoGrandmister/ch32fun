@@ -19,7 +19,7 @@ https://www.usb.org/sites/default/files/termt10.pdf
 
 //genric USB defs
 
-#define FUSB_CONFIG_EPS       1 // Include EP0 in this count
+#define FUSB_CONFIG_EPS       4 // Include EP0 in this count
 #define FUSB_SUPPORTS_SLEEP   0
 #define FUSB_CURSED_TURBO_DMA 0 // Hacky, but seems fine, shaves 2.5us off filling 64-byte buffers.
 #define FUSB_IO_PROFILE       1
@@ -32,10 +32,6 @@ https://www.usb.org/sites/default/files/termt10.pdf
 
 #include "usb_defines.h"
 
-
-
-
-
 #ifndef Audio_OUT_ch
 #define Audio_OUT_ch 0
 #endif
@@ -45,12 +41,12 @@ https://www.usb.org/sites/default/files/termt10.pdf
 #endif
 
 /* terminal out Descriptor (ID, INPUT)*/
-#define USB_Audio_OUT_Terminal_Desc(id,source)\
+#define USB_Audio_OUT_Terminal_Desc(id,sink,source)\
 	0x09		/*len*/						,\
 	0x24		/*CS_INTERFACE*/			,\
 	0x03		/*out code*/				,\
 	id			/*id of terminal*/			,\
-	0x01,0x03	/*0x0301->speaker*/			,\
+	0x01,sink	/*0x03->speaker,0x01->USB*/	,\
 	0			/*associated terminal*/		,\
 	source		/*input terminal*/			,\
 	0x00		/*string index*/	
@@ -59,94 +55,121 @@ https://www.usb.org/sites/default/files/termt10.pdf
 source 1=USB,source 2=mic,
 */
 #define USB_Audio_IN_Terminal_Desc(id,source,ch_count,ch_mask)\
-	0x0C		/*len*/						,\
-	0x24		/*CS_INTERFACE*/			,\
-	source		/*out code*/				,\
-	id			/*id of terminal*/			,\
-	0x01,source	/*terminal type*/			,\
-	0			/*associated terminal*/		,\
-	ch_count	/*channel count*/			,\
-	ch_mask		/*channel bit mask*/		,\
-	0x00		/*string index*/			,\
-	0x00		/*string index*/
+	0x0C			/*len*/						,\
+	0x24			/*CS_INTERFACE*/			,\
+	0x02			/*IN code*/					,\
+	id				/*id of terminal*/			,\
+	0x01,source		/*0x02->mic,0x01->USB*/		,\
+	0				/*associated terminal*/		,\
+	ch_count		/*channel count*/			,\
+	ch_mask,0x00	/*channel bit mask*/		,\
+	0x00			/*string index*/			,\
+	0x00			/*string index*/
 
-/*max is 8*/
-static uint8_t channel_mask(int count){
-	int mask=0;
-	if (count>7){
-		count=7;
-	}
-	for (int i=0;i<count;i++){
-		mask=mask|(1<<i);
-	}
-	return(mask)
-}
+
 //Taken from http://www.usbmadesimple.co.uk/ums_ms_desc_dev.htm
 static const uint8_t device_descriptor[] = {
-	0x12, //Length
-	1,  //Type (Device)
-	0x00, 0x02, //Spec
-	0x00, //Device Class
-	0x0, //Device Subclass
-	0x0, //Device Protocol  (000 = use config descriptor)
-	64, //Max packet size for EP0 (This has to be 8 because of the USB Low-Speed Standard)
-	0x09, 0x12, //ID Vendor
-	0x35, 0xd0, //ID Product
-	0x03, 0x00, //ID Rev
-	1, //Manufacturer string
-	2, //Product string
-	3, //Serial string
-	1, //Max number of configurations
+	0x12,				//Length
+	1,  				//Type (Device)
+	0x00, 0x02,			//Spec
+	0x00,				//Device Class
+	0x0,				//Device Subclass
+	0x0,				//Device Protocol  (000 = use config descriptor)
+	64,					//Max packet size for EP0 (This has to be 8 because of the USB Low-Speed Standard)
+	0x09, 0x12,			//ID Vendor
+	0x35, 0xd0,			//ID Product
+	0x03, 0x00,			//ID Rev
+	1,					//Manufacturer string
+	2,					//Product string
+	3,					//Serial string
+	1,					//Max number of configurations
 };
 
+
+static const uint8_t channel_mask[]={0,0x3,0x7,0x0F,0x1F,0x3F,0x5F,0x7F,0xFF};
 
 
 /* Configuration Descriptor Set */
 static const uint8_t config_descriptor[ ] =
 {
-	    /* Configuration Descriptor */																		//offset tracking
-    0x09,                                                   // bLength 										0
-    0x02,                                                   // bDescriptorType								1
-    0x2B, 0x00,                                             // wTotalLength									2,3
-    0x01,                                                   // bNumInterfaces (1)							4
-    0x01,                                                   // bConfigurationValue							5
-    0x01,                                                   // iConfiguration								6
-    0x80,                                                   // bmAttributes: Bus Powered					7
-    0x32,                                                   // MaxPower: 100mA								8
-    /* Configuration Descriptor */                                                                          //offset tracking
-    0x09,                                                   // bLength                                      0
-    0x04,                                                   // bDescriptorType                              1
-    0x00,                                                   // intrface number                              2
-    0x00,                                                   // bAlternateSetting                            3
-	0x00,                                                   // Num Endpoints    	 						4
-    0x01,                                                   // Interface Class 						        5
-    0x01,                                                   // sub class                                    6
-    0x00,                                                   // interface Protocol					        7
-    0x00,                                                   // intraface index			                    8
-    /* Audio Header Descriptor */                                                                   	    //offset tracking
-    0x09,                                                   // bLength                                      0                   
-    0x24,                                                   // CS_INTERFACE                                 1                   
-    0x01,                                                   // header subtype                               2                   
-    0x01,0x00,                                              // audio device class spec                      3,4                 
-    0x19,0x00,                                              // Total number of bytes returned               5,6                 
-    (Audio_IN_ch>0)+(Audio_OUT_ch>0)*2,
-#if(Audio_IN_ch>0)
+	    /* Interface config*/
+    0x09,													// bLength
+    0x02,													// bDescriptorType
+    35+(Audio_IN_ch>0)*29+(Audio_OUT_ch>0)*29, 0x00,		// wTotalLength
+    0x02,													// bNumInterfaces (stream&control)
+    0x01,													// bConfigurationValue
+    0x01,													// iConfiguration
+    0x80,													// bmAttributes: Bus Power
+    0x32,													// MaxPower: 100mA
+
+	/* switch to Interface 0 audio class */
+    0x09,													// bLength
+    0x04,													// bDescriptorType
+    0x00,													// intrface number
+    0x00,													// bAlternateSetting
+	0x00,													// Num Endpoints
+    0x01,													// Interface Class
+    0x01,													// sub class
+    0x00,													// interface Protocol
+    0x00,													// string index
+/* Audio Header Descriptor */
+0x08+(Audio_IN_ch>0)+(Audio_OUT_ch>0),						// bLength
+0x24,														// CS_INTERFACE
+0x01,														// header subtype
+0x00,0x01,													// audio device class spec
+17+(Audio_IN_ch>0)*29+(Audio_OUT_ch>0)*29,0x00,				// Total number of bytes returned
+(((Audio_IN_ch>0)+(Audio_OUT_ch>0))),						// terminal count
+
+#if(Audio_IN_ch>0)											//specify terminal names
 	0x01,
-	0x02,
 #endif
 #if(Audio_OUT_ch>0)
-	0x03,
-	0x04,
-#endif
-#if(Audio_IN_ch>0)
-	0x01,
-	0x02,
-#endif
-#if(Audio_OUT_ch>0)
-		USB_Audio_OUT_Terminal_Desc(0x1,0x2),
+	0x02,	
 #endif
 
-	USB_Audio_IN_Terminal_Desc(0x2,0x1,0x2,0x3),
+
+
+#if(Audio_IN_ch>0)
+	USB_Audio_IN_Terminal_Desc(0x1,0x2,Audio_IN_ch,channel_mask[Audio_IN_ch-1]),
+	USB_Audio_OUT_Terminal_Desc(0x3,02,0x1),
+
+#endif
+
+#if(Audio_OUT_ch>0)
+	USB_Audio_IN_Terminal_Desc(0x2,0x1,Audio_OUT_ch,channel_mask[Audio_OUT_ch-1]),
+	USB_Audio_OUT_Terminal_Desc(0x4,0x03,0x2),
+#endif
+
+
+/*switch to stream intraface */
+0x09,                                                   // bLength                                      0
+0x04,                                                   // bDescriptorType                              1
+0x01,                                                   // intrface number                              2
+0x00,                                                   // bAlternateSetting                            3
+0x00,                                                   // Num Endpoints    	 						4
+0x01,                                                   // Interface Class 						        5
+0x02,                                                   // sub class                                    6
+0x00,                                                   // interface Protocol					        7
+0x00,
+#if (Audio_OUT_ch>0)
+0x7,					//len
+0x24,					//CS intraface
+0x01,					//header
+0x02,					//terminal
+0x01,					//line delay
+0x01,0x00				//format, 1->PCM, 2->8bit,3->float
+#if (Audio_IN_ch>0)
+,
+#endif
+#endif	
+#if (Audio_IN_ch>0)
+0x7,					//len
+0x24,					//CS intraface
+0x01,					//header
+0x02,					//terminal
+0x01,					//line delay
+0x01,0x00				//format, 1->PCM, 2->8bit,3->float
+#endif
 };
 
 
@@ -185,9 +208,6 @@ const static struct descriptor_list_struct {
 } descriptor_list[] = {
 	{0x00000100, device_descriptor, sizeof(device_descriptor)},
 	{0x00000200, config_descriptor, sizeof(config_descriptor)},
-	//{0x00000200, audio_header, sizeof(audio_header)},
-	//{0x00002400, CS_header, sizeof(CS_header)},
-	// interface number // 2200 for hid descriptors.
 
 	//{0x00002100, config_descriptor + 18, 9 }, // Not sure why, this seems to be useful for Windows + Android.
 

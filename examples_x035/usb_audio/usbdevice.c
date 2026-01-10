@@ -2,8 +2,10 @@
    This example is primarily for use with hidapi on the host.
 */
 
-#define Audio_OUT_ch 2
-
+/*limits are 1-8*/
+#define Audio_ch 0x02
+#define Audio_IN 1
+#define audio_sample_rate 0x80,0x3E,0x00 //8Ksmp/s
 #include "ch32fun.h"
 #include <stdio.h>
 #include <string.h>
